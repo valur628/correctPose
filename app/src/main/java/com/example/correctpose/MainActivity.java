@@ -94,17 +94,38 @@ public class MainActivity extends AppCompatActivity {
 
     private TextView tv;
     private TextView tv2;
+    private TextView tv3;
+    private TextView tv4;
+    private TextView tv5;
 
-    private float leftEyePoint_blink_1, leftEyePoint_blink_2;
-    //왼쪽 눈 깜빡임용 랜드마크 포인트
-    private float rightEyePoint_blink_1, rightEyePoint_blink_2;
-    //오른쪽 눈 깜빡임용 랜드마크 포인트
+    class markPoint {
+        float x;
+        float y;
+        float z;
+    }
+    private markPoint leftLegPoint_23, leftLegPoint_25, leftLegPoint_27, leftLegPoint_29, leftLegPoint_31;
+    //왼쪽 하반신(다리) 랜드마크 포인트
+    private markPoint rightLegPoint_24, rightLegPoint_26, rightLegPoint_28, rightLegPoint_30, rightLegPoint_32;
+    //오른쪽 하반신(다리) 랜드마크 포인트
+    private markPoint leftArmPoint_11, leftArmPoint_13, leftArmPoint_15, leftArmPoint_17, leftArmPoint_19, leftArmPoint_21;
+    //왼쪽 상반신(팔) 랜드마크 포인트
+    private markPoint rightArmPoint_12, rightArmPoint_14, rightArmPoint_16, rightArmPoint_18, rightArmPoint_20, rightArmPoint_22;
+    //오른쪽 상반신(팔) 랜드마크 포인트
+    private markPoint faceMouthPoint_9, faceMouthPoint_10;
+    //얼굴(입) 랜드마크 포인트
+    private markPoint faceEarPoint_7, faceEarPoint_8;
+    //얼굴(귀) 랜드마크 포인트
+    private markPoint faceLeftEyePoint_1, faceLeftEyePoint_2, faceLeftEyePoint_3;
+    //얼굴(왼쪽 눈) 랜드마크 포인트
+    private markPoint faceLeftEyePoint_4, faceLeftEyePoint_5, faceLeftEyePoint_6;
+    //얼굴(오른쪽 눈) 랜드마크 포인트
+    private markPoint faceNosePoint_0;
+    //얼굴(코) 랜드마크 포인트
     private float ratioPoint_1a, ratioPoint_1b, ratioPoint_2a, ratioPoint_2b;
-    // 눈 깜빡임용 비율 계산에 쓰일 포인트 변수 (왼쪽, 오른쪽)
-    private float leftRatioMeasurement, rightRatioMeasurement;
-    // 눈 비율 계산값 변수
-    private boolean eye_blinked, eye_open;
-    //양쪽 눈 감았는지 여부
+    //비율 계산에 쓰일 포인트 변수 (왼쪽, 오른쪽)
+    private markPoint leftArmRatioMeasurement_11, leftArmRatioMeasurement_13, leftArmRatioMeasurement_15;
+    //비율 계산값 변수
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -112,6 +133,9 @@ public class MainActivity extends AppCompatActivity {
         setContentView(getContentViewLayoutResId());
         tv = findViewById(R.id.tv);
         tv2 = findViewById(R.id.tv2);
+        tv3 = findViewById(R.id.tv3);
+        tv4 = findViewById(R.id.tv4);
+        tv5 = findViewById(R.id.tv5);
         //tv.setText("000");
         try {
             applicationInfo =
@@ -151,9 +175,6 @@ public class MainActivity extends AppCompatActivity {
         processor.setInputSidePackets(inputSidePackets);
         //tv.setText("999");
 
-        eye_blinked = true;
-        eye_open = true;
-        //tv.setText("00000");
 
         // To show verbose logging, run:
         // adb shell setprop log.tag.MainActivity VERBOSE
@@ -162,58 +183,37 @@ public class MainActivity extends AppCompatActivity {
             processor.addPacketCallback(
                     OUTPUT_LANDMARKS_STREAM_NAME,
                     (packet) -> {
-                        Log.v(TAG, "Received pose landmarks packet.");
-                        try {
-                            NormalizedLandmarkList poseLandmarks =
-                                    PacketGetter.getProto(packet, NormalizedLandmarkList.class);
-                            Log.v(
-                                    TAG,
-                                    "[TS:"
-                                            + packet.getTimestamp()
-                                            + "] "
-                                            + getPoseLandmarksDebugString(poseLandmarks));
-                        } catch (InvalidProtocolBufferException exception) {
-                            Log.e(TAG, "Failed to get proto.", exception);
-                        }
-                        /*
-                        //tv.setText("33333");
-                        leftEyePoint_blink_1 = multiFaceLandmarks.get(0).getLandmarkList().get(386).getY()*1920f;
-                        leftEyePoint_blink_2 = multiFaceLandmarks.get(0).getLandmarkList().get(373).getY()*1920f;
-                        rightEyePoint_blink_1 = multiFaceLandmarks.get(0).getLandmarkList().get(159).getY()*1920f;
-                        rightEyePoint_blink_2 = multiFaceLandmarks.get(0).getLandmarkList().get(144).getY()*1920f;
+                        List<NormalizedLandmarkList> poseLandmarks =
+                                PacketGetter.getProtoVector(packet, NormalizedLandmarkList.parser());
 
-                        //tv.setText("44444");
-                        ratioPoint_1a = multiFaceLandmarks.get(0).getLandmarkList().get(5).getY()*1920f;
-                        ratioPoint_1b = multiFaceLandmarks.get(0).getLandmarkList().get(4).getY()*1920f;
+                        ratioPoint_1a = poseLandmarks.get(0).getLandmarkList().get(11).getY() * 1920f;
+                        ratioPoint_1b = poseLandmarks.get(0).getLandmarkList().get(13).getY() * 1920f;
+                        ratioPoint_2a = poseLandmarks.get(0).getLandmarkList().get(12).getY() * 1920f;
+                        ratioPoint_2b = poseLandmarks.get(0).getLandmarkList().get(14).getY() * 1920f;
 
-                        //tv.setText("55555");
-                        leftRatioMeasurement = (leftEyePoint_blink_2 - leftEyePoint_blink_1) / (ratioPoint_1b - ratioPoint_1a);
-                        rightRatioMeasurement = (rightEyePoint_blink_2 - rightEyePoint_blink_1) / (ratioPoint_1b - ratioPoint_1a);
-
-                        tv2.setText("[LEFT=" + leftRatioMeasurement + "] | [" + rightRatioMeasurement + "=RIGHT]");
-                        if(leftRatioMeasurement < 0.41 || rightRatioMeasurement < 0.41){
-                            if(eye_blinked){
-                                tv.setText("Eye is blinked");
-                                //imgv.setImageDrawable(this.getResources().getDrawable(R.drawable.eyes_close));
-                                eye_blinked = false;
-                                eye_open = true;
-                            }
-                        }
-                        else{
-                            if(eye_open)
-                            {
-                                tv.setText("Eye is open");
-                                //imgv.setImageDrawable(this.getResources().getDrawable(R.drawable.eyes_open));
-                                eye_blinked = true;
-                                eye_open = false;
-                            }
-                        }*/
-          /*Log.v(
-              TAG,
-              "[TS:"
-                  + packet.getTimestamp()
-                  + "] "
-                  + getMultiFaceLandmarksDebugString(multiFaceLandmarks));*/
+                        leftArmPoint_11.x = poseLandmarks.get(0).getLandmarkList().get(11).getX() * 1080f;
+                        leftArmPoint_11.y = poseLandmarks.get(0).getLandmarkList().get(11).getY() * 1080f;
+                        leftArmPoint_11.z = poseLandmarks.get(0).getLandmarkList().get(11).getZ() * 1080f;
+                        leftArmPoint_13.x = poseLandmarks.get(0).getLandmarkList().get(13).getX() * 1080f;
+                        leftArmPoint_13.y = poseLandmarks.get(0).getLandmarkList().get(13).getY() * 1080f;
+                        leftArmPoint_13.z = poseLandmarks.get(0).getLandmarkList().get(13).getZ() * 1080f;
+                        leftArmPoint_15.x = poseLandmarks.get(0).getLandmarkList().get(15).getX() * 1080f;
+                        leftArmPoint_15.y = poseLandmarks.get(0).getLandmarkList().get(15).getY() * 1080f;
+                        leftArmPoint_15.z = poseLandmarks.get(0).getLandmarkList().get(15).getZ() * 1080f;
+                        leftArmRatioMeasurement_11.x = (leftArmPoint_11.x) / (ratioPoint_1b - ratioPoint_1a);
+                        leftArmRatioMeasurement_11.y = (leftArmPoint_11.y) / (ratioPoint_1b - ratioPoint_1a);
+                        leftArmRatioMeasurement_11.z = (leftArmPoint_11.z) / (ratioPoint_1b - ratioPoint_1a);
+                        leftArmRatioMeasurement_13.x = (leftArmPoint_13.x) / (ratioPoint_1b - ratioPoint_1a);
+                        leftArmRatioMeasurement_13.y = (leftArmPoint_13.y) / (ratioPoint_1b - ratioPoint_1a);
+                        leftArmRatioMeasurement_13.z = (leftArmPoint_13.z) / (ratioPoint_1b - ratioPoint_1a);
+                        leftArmRatioMeasurement_15.x = (leftArmPoint_15.x) / (ratioPoint_1b - ratioPoint_1a);
+                        leftArmRatioMeasurement_15.y = (leftArmPoint_15.y) / (ratioPoint_1b - ratioPoint_1a);
+                        leftArmRatioMeasurement_15.z = (leftArmPoint_15.z) / (ratioPoint_1b - ratioPoint_1a);
+                        tv.setText(leftArmPoint_11.x + " =11X / 11Y= " + leftArmPoint_11.y);
+                        tv2.setText(leftArmPoint_13.x + " =13X / 13Y= " + leftArmPoint_13.y);
+                        tv3.setText(leftArmPoint_15.x + " =15X / 15Y= " + leftArmPoint_15.y);
+                        tv4.setText(leftArmPoint_13.z + " =13Z / 15Z= " + leftArmPoint_15.z);
+                        tv5.setText(getLandmarksAngle(leftArmPoint_11, leftArmPoint_13, leftArmPoint_15, 'x', 'y') + " =AngleXY 13 AngleXZ= " + getLandmarksAngle(leftArmPoint_11, leftArmPoint_13, leftArmPoint_15, 'x', 'z'));
                     });
         }
     }
@@ -341,4 +341,27 @@ public class MainActivity extends AppCompatActivity {
         }
         return poseLandmarkStr;
     }
+    public static float getLandmarksAngle(markPoint p1, markPoint p2, markPoint p3, char a, char b) {
+        float p1_2 = 0f, p2_3 = 0f, p3_1 = 0f;
+        if(a == b) { return 0; }
+        else if((a == 'x' || b == 'x') && (a == 'y' || b == 'y')) {
+            p1_2 = (float) Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
+            p2_3 = (float) Math.sqrt(Math.pow(p2.x - p3.x, 2) + Math.pow(p2.y - p3.y, 2));
+            p3_1 = (float) Math.sqrt(Math.pow(p3.x - p1.x, 2) + Math.pow(p3.y - p1.y, 2));
+        }
+        else if((a == 'x' || b == 'x') && (a == 'z' || b == 'z')) {
+            p1_2 = (float) Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.z - p2.z, 2));
+            p2_3 = (float) Math.sqrt(Math.pow(p2.x - p3.x, 2) + Math.pow(p2.z - p3.z, 2));
+            p3_1 = (float) Math.sqrt(Math.pow(p3.x - p1.x, 2) + Math.pow(p3.z - p1.z, 2));
+        }
+        else if((a == 'y' || b == 'y') && (a == 'z' || b == 'z')) {
+            p1_2 = (float) Math.sqrt(Math.pow(p1.y - p2.y, 2) + Math.pow(p1.z - p2.z, 2));
+            p2_3 = (float) Math.sqrt(Math.pow(p2.y - p3.y, 2) + Math.pow(p2.z - p3.z, 2));
+            p3_1 = (float) Math.sqrt(Math.pow(p3.y - p1.y, 2) + Math.pow(p3.z - p1.z, 2));
+        }
+        float radian = (float) Math.acos((p1_2 * p1_2 + p2_3 * p2_3 - p3_1 * p3_1) / (2 * p1_2 * p2_3));
+        float degree = (float) (radian / Math.PI * 180);
+        return degree;
+    }
+
 }
